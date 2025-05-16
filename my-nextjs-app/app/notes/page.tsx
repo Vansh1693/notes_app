@@ -1,97 +1,124 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 );
 
 interface Note {
   id: number;
-  user_id: string;
   content: string;
+  user_id: string;
   created_at: string;
 }
 
 export default function NotesPage() {
-  const [user, setUser] = useState<null | { id: string }>(null);
+  const router = useRouter();
   const [notes, setNotes] = useState<Note[]>([]);
-  const [newNote, setNewNote] = useState('');
+  const [newNote, setNewNote] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Check if user is logged in
+  // Get user session and notes on mount
   useEffect(() => {
-    const getUser = async () => {
+    const fetchSessionAndNotes = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        setUser({ id: user.id });
-        fetchNotes(user.id);
-      } else {
-        window.location.href = '/login'; // Redirect if not logged in
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        router.push("/login");
+        return;
       }
+
+      setUserId(session.user.id);
+      await loadNotes(session.user.id);
+      setLoading(false);
     };
-    getUser();
-  }, []);
 
-  // Fetch user's notes
-  const fetchNotes = async (userId: string) => {
-    const { data, error } = await supabase
-      .from<Note>('notes')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    fetchSessionAndNotes();
+  }, [router]);
 
-    if (!error && data) {
-      setNotes(data);
+  // Fetch notes for the user
+  const loadNotes = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from<Note, Note>("notes")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setNotes(data || []);
+    } catch (error) {
+      alert("Error loading notes: " + (error as Error).message);
     }
   };
 
   // Add a new note
   const addNote = async () => {
-    if (!newNote || !user) return;
+    if (!newNote.trim() || !userId) return;
 
-    const { error } = await supabase.from('notes').insert([
-      {
-        user_id: user.id,
+    try {
+      const { data, error } = await supabase.from("notes").insert({
         content: newNote,
-      },
-    ]);
+        user_id: userId,
+      });
 
-    if (!error) {
-      setNewNote('');
-      fetchNotes(user.id); // Refresh notes
+      if (error) throw error;
+
+      setNewNote("");
+      // Reload notes after adding
+      await loadNotes(userId);
+    } catch (error) {
+      alert("Error adding note: " + (error as Error).message);
     }
   };
 
-  // Logout function
+  // Logout user
   const logout = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    router.push("/login");
   };
 
-  return (
-    <div style={{ color: 'white', padding: '2rem', maxWidth: '600px', margin: 'auto' }}>
-      <h2>My Notes</h2>
-      <textarea
-        placeholder="Write a new note..."
-        value={newNote}
-        onChange={(e) => setNewNote(e.target.value)}
-        style={{ display: 'block', width: '100%', height: '100px', marginBottom: '1rem' }}
-      />
-      <button onClick={addNote} style={{ marginRight: '1rem' }}>
-        Add Note
-      </button>
-      <button onClick={logout}>Logout</button>
+  if (loading) return <div>Loading...</div>;
 
-      <ul style={{ marginTop: '2rem' }}>
+  return (
+    <div style={{ maxWidth: 600, margin: "auto", padding: 20 }}>
+      <h1>Your Notes</h1>
+      <div>
+        <textarea
+          rows={4}
+          style={{ width: "100%" }}
+          placeholder="Write a new note..."
+          value={newNote}
+          onChange={(e) => setNewNote(e.target.value)}
+        />
+        <button onClick={addNote} style={{ marginTop: 10 }}>
+          Add Note
+        </button>
+      </div>
+
+      <ul style={{ marginTop: 20 }}>
+        {notes.length === 0 && <li>No notes yet.</li>}
         {notes.map((note) => (
-          <li key={note.id} style={{ marginBottom: '1rem', backgroundColor: '#222', padding: '1rem', borderRadius: '5px' }}>
+          <li key={note.id} style={{ marginBottom: 10 }}>
             {note.content}
+            <br />
+            <small style={{ color: "#666" }}>
+              {new Date(note.created_at).toLocaleString()}
+            </small>
           </li>
         ))}
       </ul>
+
+      <button onClick={logout} style={{ marginTop: 30, color: "red" }}>
+        Logout
+      </button>
     </div>
   );
 }
