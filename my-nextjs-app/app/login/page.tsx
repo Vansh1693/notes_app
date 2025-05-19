@@ -1,58 +1,69 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { useRouter } from 'next/navigation';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 );
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+export default function AuthPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleLogin = async () => {
-    setError('');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError(error.message);
-    else router.push('/notes');
-  };
+  const handleAuth = async () => {
+    setError("");
 
-  const handleSignup = async () => {
-    setError('');
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) setError(error.message);
-    else alert('Signup successful! Please check your email to confirm, then login.');
+    const { data, error } = isSignUp
+      ? await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push("/notes");
+    }
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', color: 'white', backgroundColor: '#000', padding: '2rem', borderRadius: 8 }}>
-      <h2>Login / Signup</h2>
+    <div style={{ maxWidth: 400, margin: "auto", padding: 20 }}>
+      <h2>{isSignUp ? "Sign Up" : "Login"}</h2>
 
       <input
         type="email"
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem', width: '100%' }}
+        style={{ display: "block", width: "100%", marginBottom: 10 }}
       />
-
       <input
         type="password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem', width: '100%' }}
+        style={{ display: "block", width: "100%", marginBottom: 10 }}
       />
 
-      <button onClick={handleLogin} style={{ marginRight: '1rem' }}>Login</button>
-      <button onClick={handleSignup}>Sign Up</button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
+      <button onClick={handleAuth} style={{ width: "100%" }}>
+        {isSignUp ? "Sign Up" : "Login"}
+      </button>
+
+      <p style={{ marginTop: 10 }}>
+        {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+        <button
+          onClick={() => setIsSignUp(!isSignUp)}
+          style={{ color: "blue", textDecoration: "underline" }}
+        >
+          {isSignUp ? "Login" : "Sign Up"}
+        </button>
+      </p>
     </div>
   );
 }
