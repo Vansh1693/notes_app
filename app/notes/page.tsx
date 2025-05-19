@@ -25,10 +25,9 @@ export default function NotesPage() {
 
   useEffect(() => {
     const fetchSessionAndNotes = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+      const response = await supabase.auth.getSession();
+      const session = response.data.session;
+      const error = response.error;
 
       if (error || !session?.user) {
         router.push("/login");
