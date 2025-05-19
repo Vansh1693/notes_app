@@ -53,8 +53,7 @@ export default function NotesPage() {
       if (error) throw error;
       setNotes(data || []);
     } catch (error) {
-      console.error("Error loading notes:", error);
-      alert("Error loading notes");
+      alert("Error loading notes: " + (error as Error).message);
     }
   };
 
@@ -72,8 +71,7 @@ export default function NotesPage() {
       setNewNote("");
       await loadNotes(userId);
     } catch (error) {
-      console.error("Error adding note:", error);
-      alert("Error adding note");
+      alert("Error adding note: " + (error as Error).message);
     }
   };
 
@@ -100,10 +98,10 @@ export default function NotesPage() {
         </button>
       </div>
 
-      <ul style={{ marginTop: 20, listStyleType: "none", padding: 0 }}>
+      <ul style={{ marginTop: 20 }}>
         {notes.length === 0 && <li>No notes yet.</li>}
         {notes.map((note) => (
-          <li key={note.id} style={{ marginBottom: 10, padding: 10, border: "1px solid #eee", borderRadius: 4 }}>
+          <li key={note.id} style={{ marginBottom: 10 }}>
             {note.content}
             <br />
             <small style={{ color: "#666" }}>
@@ -113,18 +111,7 @@ export default function NotesPage() {
         ))}
       </ul>
 
-      <button 
-        onClick={logout} 
-        style={{ 
-          marginTop: 30, 
-          color: "white", 
-          backgroundColor: "red", 
-          border: "none", 
-          padding: "8px 16px",
-          borderRadius: 4,
-          cursor: "pointer"
-        }}
-      >
+      <button onClick={logout} style={{ marginTop: 30, color: "red" }}>
         Logout
       </button>
     </div>
