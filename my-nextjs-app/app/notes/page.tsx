@@ -47,7 +47,7 @@ export default function NotesPage() {
   const loadNotes = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from<Note, Note>("notes")
+        .from("notes")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
@@ -55,7 +55,8 @@ export default function NotesPage() {
       if (error) throw error;
       setNotes(data || []);
     } catch (error) {
-      alert("Error loading notes: " + (error as Error).message);
+      console.error("Error loading notes:", error);
+      alert("Error loading notes");
     }
   };
 
@@ -64,7 +65,7 @@ export default function NotesPage() {
     if (!newNote.trim() || !userId) return;
 
     try {
-      const { data, error } = await supabase.from("notes").insert({
+      const { error } = await supabase.from("notes").insert({
         content: newNote,
         user_id: userId,
       });
@@ -75,7 +76,8 @@ export default function NotesPage() {
       // Reload notes after adding
       await loadNotes(userId);
     } catch (error) {
-      alert("Error adding note: " + (error as Error).message);
+      console.error("Error adding note:", error);
+      alert("Error adding note");
     }
   };
 
@@ -103,10 +105,10 @@ export default function NotesPage() {
         </button>
       </div>
 
-      <ul style={{ marginTop: 20 }}>
+      <ul style={{ marginTop: 20, listStyleType: "none", padding: 0 }}>
         {notes.length === 0 && <li>No notes yet.</li>}
         {notes.map((note) => (
-          <li key={note.id} style={{ marginBottom: 10 }}>
+          <li key={note.id} style={{ marginBottom: 10, padding: 10, border: "1px solid #eee", borderRadius: 4 }}>
             {note.content}
             <br />
             <small style={{ color: "#666" }}>
@@ -116,7 +118,18 @@ export default function NotesPage() {
         ))}
       </ul>
 
-      <button onClick={logout} style={{ marginTop: 30, color: "red" }}>
+      <button 
+        onClick={logout} 
+        style={{ 
+          marginTop: 30, 
+          color: "white", 
+          backgroundColor: "red", 
+          border: "none", 
+          padding: "8px 16px",
+          borderRadius: 4,
+          cursor: "pointer"
+        }}
+      >
         Logout
       </button>
     </div>
