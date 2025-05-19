@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-const supabase = createClient(
+const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 );
@@ -23,14 +23,13 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Get user session and notes on mount
   useEffect(() => {
     const fetchSessionAndNotes = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const response = await supabase.auth.getSession();
+      const session = response.data.session;
+      const error = response.error;
 
-      if (!session?.user) {
+      if (error || !session?.user) {
         router.push("/login");
         return;
       }
@@ -43,11 +42,10 @@ export default function NotesPage() {
     fetchSessionAndNotes();
   }, [router]);
 
-  // Fetch notes for the user
   const loadNotes = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from<Note, Note>("notes")
+        .from("notes")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
@@ -59,12 +57,11 @@ export default function NotesPage() {
     }
   };
 
-  // Add a new note
   const addNote = async () => {
     if (!newNote.trim() || !userId) return;
 
     try {
-      const { data, error } = await supabase.from("notes").insert({
+      const { error } = await supabase.from("notes").insert({
         content: newNote,
         user_id: userId,
       });
@@ -72,14 +69,12 @@ export default function NotesPage() {
       if (error) throw error;
 
       setNewNote("");
-      // Reload notes after adding
       await loadNotes(userId);
     } catch (error) {
       alert("Error adding note: " + (error as Error).message);
     }
   };
 
-  // Logout user
   const logout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
