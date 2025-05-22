@@ -9,61 +9,135 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 );
 
-export default function AuthPage() {
+export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleAuth = async () => {
+  const handleAuth = async (authType: "login" | "signup") => {
     setError("");
+    setLoading(true);
 
-    const { data, error } = isSignUp
-      ? await supabase.auth.signUp({ email, password })
-      : await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
+    try {
+      if (authType === "login") {
+        const result = await supabase.auth.signInWithPassword({ email, password });
+        if (result.error) throw result.error;
+        router.push("/notes");
+      } else {
+        const result = await supabase.auth.signUp({ email, password });
+        if (result.error) throw result.error;
+        alert("Signup successful! Please check your email to confirm, then login.");
+      }
+    } catch (error: any) {
       setError(error.message);
-    } else {
-      router.push("/notes");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "auto", padding: 20 }}>
-      <h2>{isSignUp ? "Sign Up" : "Login"}</h2>
+    <div style={{
+      maxWidth: 400,
+      margin: "2rem auto",
+      color: "white",
+      backgroundColor: "#000",
+      padding: "2rem",
+      borderRadius: 8,
+      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
+    }}>
+      <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>Login / Signup</h2>
 
       <input
         type="email"
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        style={{ display: "block", width: "100%", marginBottom: 10 }}
+        style={{
+          display: "block",
+          marginBottom: "1rem",
+          padding: "0.75rem",
+          width: "100%",
+          color: "black",
+          border: "1px solid #ddd",
+          borderRadius: "4px"
+        }}
+        disabled={loading}
       />
+
       <input
         type="password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        style={{ display: "block", width: "100%", marginBottom: 10 }}
+        style={{
+          display: "block",
+          marginBottom: "1.5rem",
+          padding: "0.75rem",
+          width: "100%",
+          color: "black",
+          border: "1px solid #ddd",
+          borderRadius: "4px"
+        }}
+        disabled={loading}
       />
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      <button onClick={handleAuth} style={{ width: "100%" }}>
-        {isSignUp ? "Sign Up" : "Login"}
-      </button>
-
-      <p style={{ marginTop: 10 }}>
-        {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        gap: "1rem",
+        marginTop: "1rem"
+      }}>
         <button
-          onClick={() => setIsSignUp(!isSignUp)}
-          style={{ color: "blue", textDecoration: "underline" }}
+          onClick={() => handleAuth("login")}
+          style={{
+            padding: "0.75rem 1.5rem",
+            cursor: loading ? "not-allowed" : "pointer",
+            backgroundColor: "#4CAF50",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            fontWeight: "bold",
+            opacity: loading ? 0.7 : 1,
+            transition: "opacity 0.3s ease"
+          }}
+          disabled={loading}
         >
-          {isSignUp ? "Login" : "Sign Up"}
+          {loading ? "Processing..." : "Login"}
         </button>
-      </p>
+        <button
+          onClick={() => handleAuth("signup")}
+          style={{
+            padding: "0.75rem 1.5rem",
+            cursor: loading ? "not-allowed" : "pointer",
+            backgroundColor: "#2196F3",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            fontWeight: "bold",
+            opacity: loading ? 0.7 : 1,
+            transition: "opacity 0.3s ease"
+          }}
+          disabled={loading}
+        >
+          Sign Up
+        </button>
+      </div>
+
+      {error && (
+        <p style={{
+          color: "#ff6b6b",
+          marginTop: "1.5rem",
+          padding: "0.5rem",
+          backgroundColor: "rgba(255, 0, 0, 0.1)",
+          borderRadius: "4px",
+          textAlign: "center"
+        }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

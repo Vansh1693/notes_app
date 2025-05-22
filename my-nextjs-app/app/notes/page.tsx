@@ -62,7 +62,8 @@ export default function NotesPage() {
     if (!newNote.trim() || !userId) return;
 
     try {
-      const { error } = await supabase.from("notes").insert({
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { data, error } = await supabase.from("notes").insert({
         content: newNote,
         user_id: userId,
       });
