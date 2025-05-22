@@ -19,7 +19,7 @@ export default function AuthPage() {
   const handleAuth = async () => {
     setError("");
 
-    const { data, error } = isSignUp
+    const { error } = isSignUp
       ? await supabase.auth.signUp({ email, password })
       : await supabase.auth.signInWithPassword({ email, password });
 
