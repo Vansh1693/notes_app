@@ -13,7 +13,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,12 +22,12 @@ export default function LoginPage() {
 
     try {
       if (authType === "login") {
-        const result = await supabase.auth.signInWithPassword({ email, password });
-        if (result.error) throw result.error;
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
         router.push("/notes");
       } else {
-        const result = await supabase.auth.signUp({ email, password });
-        if (result.error) throw result.error;
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
         alert("Signup successful! Please check your email to confirm, then login.");
       }
     } catch (error: any) {

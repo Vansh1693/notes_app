@@ -25,9 +25,7 @@ export default function NotesPage() {
 
   useEffect(() => {
     const fetchSessionAndNotes = async () => {
-      const response = await supabase.auth.getSession();
-      const session = response.data.session;
-      const error = response.error;
+      const { data: { session }, error } = await supabase.auth.getSession();
 
       if (error || !session?.user) {
         router.push("/login");
@@ -62,13 +60,10 @@ export default function NotesPage() {
     if (!newNote.trim() || !userId) return;
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { data, error } = await supabase.from("notes").insert({
+      await supabase.from("notes").insert({
         content: newNote,
         user_id: userId,
       });
-
-      if (error) throw error;
 
       setNewNote("");
       await loadNotes(userId);
