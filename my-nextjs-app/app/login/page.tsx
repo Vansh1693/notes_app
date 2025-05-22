@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -9,133 +9,140 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 );
 
-interface Note {
-  id: number;
-  content: string;
-  user_id: string;
-  created_at: string;
-}
-
-export default function NotesPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [newNote, setNewNote] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchSessionAndNotes = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+  const handleAuth = async (authType: "login" | "signup") => {
+    setError("");
+    setLoading(true);
 
-      if (error || !session?.user) {
-        router.push("/login");
-        return;
+    try {
+      if (authType === "login") {
+        const result = await supabase.auth.signInWithPassword({ email, password });
+        if (result.error) throw result.error;
+        router.push("/notes");
+      } else {
+        const result = await supabase.auth.signUp({ email, password });
+        if (result.error) throw result.error;
+        alert("Signup successful! Please check your email to confirm, then login.");
       }
-
-      setUserId(session.user.id);
-      await loadNotes(session.user.id);
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
       setLoading(false);
-    };
-
-    fetchSessionAndNotes();
-  }, [router]);
-
-  const loadNotes = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("notes")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setNotes(data || []);
-    } catch (error) {
-      console.error("Error loading notes:", error);
-      alert("Error loading notes");
     }
   };
-
-  const addNote = async () => {
-    if (!newNote.trim() || !userId) return;
-
-    try {
-      const { error } = await supabase.from("notes").insert({
-        content: newNote,
-        user_id: userId,
-      });
-
-      if (error) throw error;
-
-      setNewNote("");
-      await loadNotes(userId);
-    } catch (error) {
-      console.error("Error adding note:", error);
-      alert("Error adding note");
-    }
-  };
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
-
-  if (loading) return <div>Loading...</div>;
 
   return (
-    <div style={{ maxWidth: 600, margin: "auto", padding: 20 }}>
-      <h1>Your Notes</h1>
-      <div>
-        <textarea
-          rows={4}
-          style={{ width: "100%" }}
-          placeholder="Write a new note..."
-          value={newNote}
-          onChange={(e) => setNewNote(e.target.value)}
-        />
-        <button onClick={addNote} style={{ marginTop: 10 }}>
-          Add Note
+    <div
+      style={{
+        maxWidth: 400,
+        margin: "2rem auto",
+        color: "white",
+        backgroundColor: "#000",
+        padding: "2rem",
+        borderRadius: 8,
+        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+      }}
+    >
+      <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>Login / Signup</h2>
+
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={{
+          display: "block",
+          marginBottom: "1rem",
+          padding: "0.75rem",
+          width: "100%",
+          color: "black",
+          border: "1px solid #ddd",
+          borderRadius: "4px",
+        }}
+        disabled={loading}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        style={{
+          display: "block",
+          marginBottom: "1.5rem",
+          padding: "0.75rem",
+          width: "100%",
+          color: "black",
+          border: "1px solid #ddd",
+          borderRadius: "4px",
+        }}
+        disabled={loading}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: "1rem",
+          marginTop: "1rem",
+        }}
+      >
+        <button
+          onClick={() => handleAuth("login")}
+          style={{
+            padding: "0.75rem 1.5rem",
+            cursor: loading ? "not-allowed" : "pointer",
+            backgroundColor: "#4CAF50",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            fontWeight: "bold",
+            opacity: loading ? 0.7 : 1,
+            transition: "opacity 0.3s ease",
+          }}
+          disabled={loading}
+        >
+          {loading ? "Processing..." : "Login"}
+        </button>
+        <button
+          onClick={() => handleAuth("signup")}
+          style={{
+            padding: "0.75rem 1.5rem",
+            cursor: loading ? "not-allowed" : "pointer",
+            backgroundColor: "#2196F3",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            fontWeight: "bold",
+            opacity: loading ? 0.7 : 1,
+            transition: "opacity 0.3s ease",
+          }}
+          disabled={loading}
+        >
+          Sign Up
         </button>
       </div>
 
-      <ul style={{ marginTop: 20, listStyleType: "none", padding: 0 }}>
-        {notes.length === 0 && <li>No notes yet.</li>}
-        {notes.map((note) => (
-          <li
-            key={note.id}
-            style={{
-              marginBottom: 10,
-              padding: 10,
-              border: "1px solid #eee",
-              borderRadius: 4,
-            }}
-          >
-            {note.content}
-            <br />
-            <small style={{ color: "#666" }}>
-              {new Date(note.created_at).toLocaleString()}
-            </small>
-          </li>
-        ))}
-      </ul>
-
-      <button
-        onClick={logout}
-        style={{
-          marginTop: 30,
-          color: "white",
-          backgroundColor: "red",
-          border: "none",
-          padding: "8px 16px",
-          borderRadius: 4,
-          cursor: "pointer",
-        }}
-      >
-        Logout
-      </button>
+      {error && (
+        <p
+          style={{
+            color: "#ff6b6b",
+            marginTop: "1.5rem",
+            padding: "0.5rem",
+            backgroundColor: "rgba(255, 0, 0, 0.1)",
+            borderRadius: "4px",
+            textAlign: "center",
+          }}
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 }
