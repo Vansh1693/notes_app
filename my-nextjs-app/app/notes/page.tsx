@@ -25,7 +25,9 @@ export default function NotesPage() {
 
   useEffect(() => {
     const fetchSessionAndNotes = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const response = await supabase.auth.getSession();
+      const session = response.data.session;
+      const error = response.error;
 
       if (error || !session?.user) {
         router.push("/login");
@@ -60,10 +62,12 @@ export default function NotesPage() {
     if (!newNote.trim() || !userId) return;
 
     try {
-      await supabase.from("notes").insert({
+      const { error } = await supabase.from("notes").insert({
         content: newNote,
         user_id: userId,
       });
+
+      if (error) throw error;
 
       setNewNote("");
       await loadNotes(userId);
@@ -109,13 +113,13 @@ export default function NotesPage() {
         ))}
       </ul>
 
-      <button 
-        onClick={logout} 
-        style={{ 
-          marginTop: 30, 
-          color: "white", 
-          backgroundColor: "red", 
-          border: "none", 
+      <button
+        onClick={logout}
+        style={{
+          marginTop: 30,
+          color: "white",
+          backgroundColor: "red",
+          border: "none",
           padding: "8px 16px",
           borderRadius: 4,
           cursor: "pointer"
